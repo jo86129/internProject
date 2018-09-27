@@ -1,3 +1,10 @@
+#include "Arduino.h"
+#include "SoftwareSerial.h"
+#include "DFRobotDFPlayerMini.h"
+
+SoftwareSerial mySoftwareSerial(10, 11); // RX, TX
+DFRobotDFPlayerMini myDFPlayer;
+
 const int button0Pin = 2;     // the number of the pushbutton pin
 const int button1Pin = 3;
 const int button2Pin = 4;
@@ -8,6 +15,10 @@ int num=0; //bomb number
 // variables will change:
 int buttonState[5]={0,0,0,0,0}; //按鈕狀態
 int beforeState[5]={0,0,0,0,0}; //前一刻的狀態
+int sound[4]={500,700,900,1100};
+int soundNum=0;
+
+void printDetail(uint8_t type, int value);
 
 void setup() {
   pinMode(button0Pin, INPUT);
@@ -16,7 +27,28 @@ void setup() {
   pinMode(button3Pin, INPUT);
   pinMode(button4Pin, INPUT);
   pinMode(buzzerPin,OUTPUT);
-  Serial.begin(9600);
+  mySoftwareSerial.begin(9600);
+  Serial.begin(115200);
+  
+  Serial.println();
+  Serial.println(F("DFRobot DFPlayer Mini Demo"));
+  Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
+  
+  if (!myDFPlayer.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+    Serial.println(F("Unable to begin:"));
+    Serial.println(F("1.Please recheck the connection!"));
+    Serial.println(F("2.Please insert the SD card!"));
+
+    while(true);
+  }
+  Serial.println(F("DFPlayer Mini online."));
+  
+  myDFPlayer.volume(30);  //Set volume value. From 0 to 30
+  myDFPlayer.playMp3Folder(6);
+         delay(500);
+         if (myDFPlayer.available()) {
+            printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+        }
 
 }
 
@@ -31,16 +63,22 @@ void loop() {
 
 void button0(){
    buttonState[0]=digitalRead(button0Pin);
+  
    if(buttonState[0]==1 and beforeState[0]==0)
     {
+      
       Serial.println("0");
       num=random(0,6);
       if(num==0)
       {
          Serial.println("bomb");
-         tone(buzzerPin,1000);
-          delay(500);
-         noTone(buzzerPin);
+         soundNum=random(1,5);
+         Serial.println(soundNum);
+         myDFPlayer.playMp3Folder(soundNum);
+         delay(500);
+         if (myDFPlayer.available()) {
+          printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+          }
       }
     }
 
@@ -60,9 +98,13 @@ void button1(){
       if(num==1)
       {
          Serial.println("bomb");
-         tone(buzzerPin,1000);
+         soundNum=random(1,5);
+         Serial.println(soundNum);
+         myDFPlayer.playMp3Folder(soundNum);
          delay(500);
-         noTone(buzzerPin);
+         if (myDFPlayer.available()) {
+              printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+         }
       }
     }
 
@@ -82,9 +124,13 @@ void button2(){
       if(num==2)
       {
          Serial.println("bomb");
-         tone(buzzerPin,1000);
+         soundNum=random(1,5);
+         Serial.println(soundNum);
+         myDFPlayer.playMp3Folder(soundNum);
          delay(500);
-         noTone(buzzerPin);
+         if (myDFPlayer.available()) {
+          printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+          }
       }
     }
 
@@ -104,9 +150,13 @@ void button3(){
       if(num==3)
       {
          Serial.println("bomb");
-         tone(buzzerPin,1000);
+         soundNum=random(1,5);
+         Serial.println(soundNum);
+         myDFPlayer.playMp3Folder(soundNum);
          delay(500);
-         noTone(buzzerPin);
+         if (myDFPlayer.available()) {
+           printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+          }
       }
     }
 
@@ -126,9 +176,13 @@ void button4(){
       if(num==4)
       {
          Serial.println("bomb");
-         tone(buzzerPin,1000);
+         soundNum=random(1,5);
+         Serial.println(soundNum);
+         myDFPlayer.playMp3Folder(soundNum);
          delay(500);
-         noTone(buzzerPin);
+         if (myDFPlayer.available()) {
+            printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
+        }
       }
     }
 
@@ -139,5 +193,58 @@ void button4(){
    beforeState[4]=buttonState[4];
 
 }
-
+void printDetail(uint8_t type, int value){
+  switch (type) {
+    case TimeOut:
+      Serial.println(F("Time Out!"));
+      break;
+    case WrongStack:
+      Serial.println(F("Stack Wrong!"));
+      break;
+    case DFPlayerCardInserted:
+      Serial.println(F("Card Inserted!"));
+      break;
+    case DFPlayerCardRemoved:
+      Serial.println(F("Card Removed!"));
+      break;
+    case DFPlayerCardOnline:
+      Serial.println(F("Card Online!"));
+      break;
+    case DFPlayerPlayFinished:
+      Serial.print(F("Number:"));
+      Serial.print(value);
+      Serial.println(F(" Play Finished!"));
+      break;
+    case DFPlayerError:
+      Serial.print(F("DFPlayerError:"));
+      switch (value) {
+        case Busy:
+          Serial.println(F("Card not found"));
+          break;
+        case Sleeping:
+          Serial.println(F("Sleeping"));
+          break;
+        case SerialWrongStack:
+          Serial.println(F("Get Wrong Stack"));
+          break;
+        case CheckSumNotMatch:
+          Serial.println(F("Check Sum Not Match"));
+          break;
+        case FileIndexOut:
+          Serial.println(F("File Index Out of Bound"));
+          break;
+        case FileMismatch:
+          Serial.println(F("Cannot Find File"));
+          break;
+        case Advertise:
+          Serial.println(F("In Advertise"));
+          break;
+        default:
+          break;
+      }
+      break;
+    default:
+      break;
+  }
+}
 
